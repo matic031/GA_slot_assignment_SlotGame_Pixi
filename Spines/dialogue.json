@@ -1,0 +1,160 @@
+{
+	"skeleton": {
+		"hash": "ADN9vBA4X+c",
+		"spine": "4.1.17",
+		"x": -1100,
+		"y": -2200,
+		"width": 2200,
+		"height": 4400,
+		"images": "./_imagesSpine_dialogue/",
+		"audio": "X:/GameArt/GameArt/Product - 23_02 - Frozen Joker/~Animation_Dev/_Project_Files/PSD"
+	},
+	"bones": [
+		{ "name": "root" },
+		{ "name": "CTRL", "parent": "root", "y": 1500, "color": "ff0000ff" }
+	],
+	"slots": [
+		{ "name": "solid", "bone": "root", "color": "ffffff00", "attachment": "solid" },
+		{ "name": "base_shadow", "bone": "CTRL", "color": "ffffff00", "attachment": "base_shadow" },
+		{ "name": "base", "bone": "CTRL", "attachment": "base" },
+		{ "name": "button", "bone": "CTRL", "attachment": "button" },
+		{ "name": "btn_txt_placeholder", "bone": "CTRL", "attachment": "placeholder" },
+		{ "name": "txt_placeholder", "bone": "CTRL", "attachment": "placeholder" }
+	],
+	"skins": [
+		{
+			"name": "default",
+			"attachments": {
+				"base": {
+					"base": { "x": 2.5, "y": 23.5, "width": 1061, "height": 583 }
+				},
+				"base_shadow": {
+					"base_shadow": { "x": 8.5, "y": 18, "width": 1009, "height": 546 }
+				},
+				"btn_txt_placeholder": {
+					"placeholder": { "y": -183, "width": 100, "height": 100 }
+				},
+				"solid": {
+					"solid": { "color": "000000ff", "scaleX": 22, "scaleY": 44, "width": 100, "height": 100 }
+				},
+				"txt_placeholder": {
+					"placeholder": { "y": 65, "width": 100, "height": 100 }
+				}
+			}
+		},
+		{
+			"name": "hover",
+			"attachments": {
+				"button": {
+					"button": { "name": "hover", "y": -183.5, "width": 272, "height": 85 }
+				}
+			}
+		},
+		{
+			"name": "normal",
+			"attachments": {
+				"button": {
+					"button": { "name": "normal", "y": -183.5, "width": 272, "height": 85 }
+				}
+			}
+		},
+		{
+			"name": "pressed",
+			"attachments": {
+				"button": {
+					"button": { "name": "pressed", "y": -183.5, "width": 272, "height": 85 }
+				}
+			}
+		}
+	],
+	"animations": {
+		"idle": {
+			"slots": {
+				"base_shadow": {
+					"rgba": [
+						{ "color": "ffffffff" }
+					]
+				},
+				"solid": {
+					"rgba": [
+						{ "color": "ffffff90" }
+					]
+				}
+			},
+			"bones": {
+				"CTRL": {
+					"translate": [
+						{ "y": -1500 }
+					]
+				}
+			}
+		},
+		"in": {
+			"slots": {
+				"base_shadow": {
+					"rgba": [
+						{ "time": 0.6, "color": "ffffff00" },
+						{ "time": 0.8333, "color": "ffffffff" }
+					]
+				},
+				"solid": {
+					"rgba": [
+						{
+							"color": "ffffff00",
+							"curve": [ 0.278, 1, 0.556, 1, 0.278, 1, 0.556, 1, 0.278, 1, 0.556, 1, 0.278, 0, 0.737, 0.5 ]
+						},
+						{ "time": 0.8333, "color": "ffffff90" }
+					]
+				}
+			},
+			"bones": {
+				"CTRL": {
+					"translate": [
+						{
+							"curve": [ 0.176, 0, 0.424, 0, 0.176, 0, 0.424, -1544.04 ]
+						},
+						{
+							"time": 0.6,
+							"y": -1544.04,
+							"curve": [ 0.678, 0, 0.756, 0, 0.678, -1544.04, 0.756, -1500 ]
+						},
+						{ "time": 0.8333, "y": -1500 }
+					]
+				}
+			}
+		},
+		"out": {
+			"slots": {
+				"base_shadow": {
+					"rgba": [
+						{ "color": "ffffffff" },
+						{ "time": 0.4, "color": "ffffff00" }
+					]
+				},
+				"solid": {
+					"rgba": [
+						{ "color": "ffffff90" },
+						{ "time": 0.8, "color": "ffffff00" }
+					]
+				}
+			},
+			"bones": {
+				"CTRL": {
+					"translate": [
+						{
+							"y": -1500,
+							"curve": [ 0.074, 0, 0.193, 0, 0.074, -1500, 0.193, -1400.82 ]
+						},
+						{
+							"time": 0.2667,
+							"y": -1400.82,
+							"curve": [ 0.444, 0, 0.744, 0, 0.444, -1400.82, 0.744, -2679.74 ]
+						},
+						{ "time": 0.8, "y": -3000, "curve": "stepped" },
+						{ "time": 0.8333 }
+					]
+				}
+			}
+		}
+	}
+	}
