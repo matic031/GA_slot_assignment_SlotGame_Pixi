@@ -3,5 +3,7 @@ Slot game made in PixiJS Game Engine
 
 Run with Live server extension or:
 
-'npm i
-node .\server.js'
+```
+npm i
+node .\server.js
+```
