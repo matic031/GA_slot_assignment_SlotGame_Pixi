@@ -860,10 +860,10 @@ function ShowDialogue(delay) {
 
         // Handle button press
         buttonSprite.on("pointerdown", () => {
+          clickSound.play();
           spineAnimation.skeleton.setSkinByName("pressed");
           spineAnimation.skeleton.setSlotsToSetupPose();
           okDialogueButtonClicked = true;
-          clickSound.play();
           HideDialogue(spineAnimation);
         });
 
