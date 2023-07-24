@@ -863,6 +863,7 @@ function ShowDialogue(delay) {
           spineAnimation.skeleton.setSkinByName("pressed");
           spineAnimation.skeleton.setSlotsToSetupPose();
           okDialogueButtonClicked = true;
+          clickSound.play();
           HideDialogue(spineAnimation);
         });
 
