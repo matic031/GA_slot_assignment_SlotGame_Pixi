@@ -1,5 +1,6 @@
 import app from "../app.js";
-import { clickSound, modifyOkDialogueButtonClicked } from "../app.js";
+import { modifyOkDialogueButtonClicked } from "../app.js";
+import {clickSound} from "../constants.js"
 
 export function HideDialogue(spineAnimation) {
     if (spineAnimation) {
@@ -35,7 +36,7 @@ export function HideDialogue(spineAnimation) {
     ...baseTextStyle,
     fontSize: 65,
   });
-  
+
   const txtTextStyle = new PIXI.TextStyle({
     ...baseTextStyle,
     fontSize: 30,

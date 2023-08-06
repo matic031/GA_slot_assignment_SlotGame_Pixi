@@ -6,11 +6,30 @@ import {
   SYMBOL_SIZE,
   SYMBOLS_COUNT,
   SPACING,
+  startX,
+  startY,
+  jsonURL,
+  textureURL,
+  clickSound,
+  loseSound,
+  winSound,
+  backgroundSourceURL,
+  REMOVE_OFFSET,
+  SPAWN_OFFSET
 } from "./constants.js";
 import Background from "./components/background.js";
-import Button from './components/button.js';
+import Button from "./components/button.js";
 import Reel from "./components/reel.js";
-import { ShowDialogue, btnText } from "./components/dialogue.js"
+import { ShowDialogue, btnText } from "./components/dialogue.js";
+import CreateReelsMask from "./components/reel-mask.js";
+import {
+  buttonStyle,
+  buttonSpacing,
+  leftShift,
+  verticalShift,
+  buttonWidths,
+  buttonX,
+} from "./components/button-style.js";
 
 // Initialize the Pixi Application
 let app = new PIXI.Application({
@@ -23,71 +42,38 @@ let app = new PIXI.Application({
 });
 export default app;
 
-const background = new Background("./Images/background.jpg");
+const background = new Background(backgroundSourceURL);
 background.loadBackground();
-
-//Symbol resources
-const jsonURL = "Images/symStatic.json";
-const textureURL = "Images/symStatic.webp";
-
-//Audio
-export const clickSound = new Audio("./Sound/click.mp3");
-export const winSound = new Audio("./Sound/win.mp3");
-export const loseSound = new Audio("./Sound/loose.mp3");
 
 //Logic variables for the Menu/Dialogue
 let refreshButtonClicked = false;
+let isSpinning = false;
 export let spinClicked = false;
 export let okDialogueButtonClicked = true;
-export function modifyOkDialogueButtonClicked(value) {okDialogueButtonClicked = value; }
-let isSpinning = false;
-
-// Calculate starting positions for reels
-let startX = (WIDTH - REELS * SYMBOL_SIZE - (REELS - 1) * SPACING) / 2;
-let startY = (HEIGHT - SYMBOLS * SYMBOL_SIZE - (SYMBOLS - 1) * SPACING) / 2;
+export function modifyOkDialogueButtonClicked(value) {
+  okDialogueButtonClicked = value;
+}
 
 // Create a container for the slot reels
 export let reelsContainer = new PIXI.Container();
 app.stage.addChild(reelsContainer);
 
 // Define the slot reels
-export let slotReels = [];
-export let matrix = []; // A 2D array that stores the numbers of the reels
+let slotReels = [];
+let matrix = []; // A 2D array that stores the numbers of the reels
 for (let i = 0; i < REELS; i++) {
-  let reel = new Reel(app, startX + i * (SYMBOL_SIZE + SPACING), startY, SYMBOLS, SPACING);
-  let column = reel.symbols.map(symbol => Number(symbol.text));
+  let reel = new Reel(
+    app,
+    startX + i * (SYMBOL_SIZE + SPACING),
+    startY,
+    SYMBOLS,
+    SPACING
+  );
+  let column = reel.symbols.map((symbol) => Number(symbol.text));
 
   slotReels.push(reel);
   matrix.push(column);
 }
-
-// Button styles
-const buttonStyle = new PIXI.TextStyle({
-  fontFamily: "Arial",
-  fontSize: 36,
-  fontWeight: "bold",
-  fill: ["#ffffff"],
-});
-
-// Define the button positions
-let buttonSpacing = 100;
-let leftShift = 25;
-let availableVerticalSpace =
-  HEIGHT - 100 - startY - SYMBOLS * (SYMBOL_SIZE + SPACING);
-let verticalShift = Math.min(
-  availableVerticalSpace,
-  -0.9 * availableVerticalSpace
-);
-let buttonWidths = [
-  PIXI.TextMetrics.measureText("REFRESH", buttonStyle).width,
-  PIXI.TextMetrics.measureText("SPIN", buttonStyle).width,
-  PIXI.TextMetrics.measureText("STOP", buttonStyle).width,
-];
-
-let totalButtonWidth = buttonWidths.reduce((a, b) => a + b, 0);
-let totalSpacing = (buttonWidths.length - 1) * buttonSpacing;
-let buttonX = (WIDTH - totalButtonWidth - totalSpacing) / 2;
-
 
 // Instantiate the buttons
 let refreshButton = new Button(
@@ -109,9 +95,7 @@ let spinButton = new Button(
   app,
   "SPIN",
   buttonStyle,
-  buttonX +
-    buttonWidths[0] +
-    buttonSpacing, // Spin button starts where the refresh button ends + the button spacing
+  buttonX + buttonWidths[0] + buttonSpacing, // Spin button starts where the refresh button ends + the button spacing
   HEIGHT - 120 + verticalShift,
   buttonWidths[1],
   function () {
@@ -137,7 +121,8 @@ let stopButton = new Button(
     leftShift,
   HEIGHT - 120 + verticalShift,
   buttonWidths[2],
-  async function () { //STOP Button function
+  async function () {
+    //STOP Button function
     if (spinClicked && okDialogueButtonClicked) {
       clickSound.play();
       HideSpinningSprites();
@@ -175,14 +160,6 @@ let stopButton = new Button(
   }
 );
 
-
-function RefreshSymbols(matrix, slotReels) {
-  for (let i = 0; i < REELS; i++) {
-    for (let j = 0; j < SYMBOLS; j++) {
-    }
-  }
-}
-
 //Refresh button calls this to set the matrix to the initial predefined state
 async function RefreshMatrix() {
   if (!refreshButtonClicked) {
@@ -193,7 +170,6 @@ async function RefreshMatrix() {
         [7, 3, 8],
         [5, 8, 6],
       ];
-      RefreshSymbols(matrix, slotReels);
       await HideSprites();
       LoadSprites();
       ShowSprites();
@@ -207,7 +183,8 @@ function ClearMatrix() {
   HideSprites();
   for (let i = 0; i < REELS; i++) {
     for (let j = 0; j < SYMBOLS; j++) {
-      if (slotReels[i] && slotReels[i][j]) { // Check if slotReels[i][j] exists
+      if (slotReels[i] && slotReels[i][j]) {
+        // Check if slotReels[i][j] exists
         reelsContainer.removeChild(slotReels[i][j]);
         slotReels[i][j].destroy();
       }
@@ -222,7 +199,7 @@ function ClearMatrix() {
     let column = [];
     for (let j = 0; j < SYMBOLS; j++) {
       // Create an empty symbol
-      let symbol = new PIXI.Text("", {
+        let symbol = new PIXI.Text("", {
         fontFamily: "Arial",
         fontSize: 0.1,
         // fill: 0xff1010,
@@ -241,164 +218,100 @@ function ClearMatrix() {
   }
 }
 
-// Check for win
-const CheckWin = (matrix, slotReels) => {
+// Helper function to check lines
+const checkLines = (matrix, setScale) => {
+  const SYMBOLS = matrix[0].length;
+  const REELS = matrix.length;
   let win = false;
-  ScaleWinningSprites(matrix, slotReels, 0.675); // Scale the winning sprites up
 
-  // Check all horizontal lines
-  for (let i = 0; i < SYMBOLS; i++) {
-    for (let j = 0; j < REELS - 2; j++) {
-      if (
-        matrix[j][i] === matrix[j + 1][i] &&
-        matrix[j + 1][i] === matrix[j + 2][i]
-      ) {
-        win = true;
-      }
-    }
-  }
-
-  // Check diagonal lines from top-left to bottom-right
-  for (let i = 0; i < REELS - 2; i++) {
-    if (
-      matrix[i][0] === matrix[i + 1][1] &&
-      matrix[i + 1][1] === matrix[i + 2][2]
-    ) {
-      win = true;
-    }
-  }
-
-  // Check diagonal lines from bottom-left to top-right
-  for (let i = 0; i < REELS - 2; i++) {
-    if (
-      matrix[i][2] === matrix[i + 1][1] &&
-      matrix[i + 1][1] === matrix[i + 2][0]
-    ) {
-      win = true;
-    }
-  }
-
-  // Check vertical lines
-  for (let i = 0; i < REELS; i++) {
-    for (let j = 0; j < SYMBOLS - 2; j++) {
-      if (
-        matrix[i][j] === matrix[i][j + 1] &&
-        matrix[i][j + 1] === matrix[i][j + 2]
-      ) {
-        win = true;
-      }
-    }
-  }
-
-  return win;
-};
-
-// Define offsets for mask
-let topOffset = 0; // offset for the top of the mask
-let bottomOffset = -50; // offset for the bottom of the mask
-
-// Create a mask for the reels container
-let mask = new PIXI.Graphics();
-mask.beginFill(0xffffff);
-mask.drawRect(
-  startX,
-  startY - topOffset,
-  REELS * (SYMBOL_SIZE + SPACING) + 50,
-  SYMBOLS * (SYMBOL_SIZE + SPACING) + topOffset + bottomOffset
-);
-mask.endFill();
-
-// Apply a mask to the reels
-reelsContainer.mask = mask;
-
-function ScaleWinningSprites(matrix, reels, scale) {
   const checkWinningLine = (line) => {
-    let win = false;
     const [a, b, c] = line;
 
     if (
       matrix[a.x][a.y] === matrix[b.x][b.y] &&
       matrix[b.x][b.y] === matrix[c.x][c.y]
     ) {
-      const setScale = (x, y) => {
-        if (sprites[x][y].visible && sprites[x][y].scale.x !== scale) {
-          gsap.to(sprites[x][y].scale, {
-            x: scale,
-            y: scale,
-            duration: 0.5,
-            ease: "power1.out",
-            yoyo: true,
-            repeat: 3,
-            transformOrigin: "50% 50%", // Scales from the center
-          });
-        }
-      };
-
-      setScale(a.x, a.y);
-      setScale(b.x, b.y);
-      setScale(c.x, c.y);
-
+      setScale && setScale(a.x, a.y);
+      setScale && setScale(b.x, b.y);
+      setScale && setScale(c.x, c.y);
       win = true;
     }
-
-    return win;
   };
 
-  const SYMBOLS = matrix[0].length;
-  const REELS = matrix.length;
-
-  // Check horizontal lines
-  for (let i = 0; i < SYMBOLS; i++) {
-    for (let j = 0; j < REELS - 2; j++) {
-      const line = [
-        { x: j, y: i },
-        { x: j + 1, y: i },
-        { x: j + 2, y: i },
-      ];
-      checkWinningLine(line);
+  // Checks for all types of lines (horizontal, vertical and diagonal)
+  const checkAllLines = () => {
+    for (let i = 0; i < SYMBOLS; i++) {
+      for (let j = 0; j < REELS - 2; j++) {
+        checkWinningLine([
+          { x: j, y: i },
+          { x: j + 1, y: i },
+          { x: j + 2, y: i },
+        ]);
+      }
     }
-  }
 
-  // Check vertical lines
-  for (let i = 0; i < REELS; i++) {
-    for (let j = 0; j < SYMBOLS - 2; j++) {
-      const line = [
-        { x: i, y: j },
-        { x: i, y: j + 1 },
-        { x: i, y: j + 2 },
-      ];
-      checkWinningLine(line);
+    for (let i = 0; i < REELS; i++) {
+      for (let j = 0; j < SYMBOLS - 2; j++) {
+        checkWinningLine([
+          { x: i, y: j },
+          { x: i, y: j + 1 },
+          { x: i, y: j + 2 },
+        ]);
+      }
     }
-  }
 
-  // Check diagonal lines from top-left to bottom-right
-  for (let i = 0; i < REELS - 2; i++) {
-    const line = [
-      { x: i, y: 0 },
-      { x: i + 1, y: 1 },
-      { x: i + 2, y: 2 },
-    ];
-    checkWinningLine(line);
-  }
+    for (let i = 0; i < REELS - 2; i++) {
+      checkWinningLine([
+        { x: i, y: 0 },
+        { x: i + 1, y: 1 },
+        { x: i + 2, y: 2 },
+      ]);
+      checkWinningLine([
+        { x: i, y: 2 },
+        { x: i + 1, y: 1 },
+        { x: i + 2, y: 0 },
+      ]);
+    }
+  };
 
-  // Check diagonal lines from bottom-left to top-right
-  for (let i = 0; i < REELS - 2; i++) {
-    const line = [
-      { x: i, y: 2 },
-      { x: i + 1, y: 1 },
-      { x: i + 2, y: 0 },
-    ];
-    checkWinningLine(line);
-  }
-}
+  checkAllLines();
 
+  return win;
+};
 
-let sprites = []; //symbols sprites array
+const ScaleWinningSprites = (matrix, reels, scale) => {
+  const setScale = (x, y) => {
+    console.log(`x: ${x}, y: ${y}`);
+    console.log(`sprites.length: ${sprites.length}`);
+    console.log(`sprites[x].length: ${sprites[x] && sprites[x].length}`);
+    if (sprites[x] && sprites[x][y] && sprites[x][y].visible && sprites[x][y].scale.x !== scale) {
+      gsap.to(sprites[x][y].scale, {
+        x: scale,
+        y: scale,
+        duration: 0.5,
+        ease: "power1.out",
+        yoyo: true,
+        repeat: 3,
+        transformOrigin: "50% 50%", // Scales from the center
+      });
+    }
+  };
+
+  return checkLines(matrix, setScale);
+};
+
+const CheckWin = (matrix, slotReels) => {
+  return ScaleWinningSprites(matrix, slotReels, 0.675);
+};
+
+let sprites = []; //symbols sprites
+let spinningSprites = []; //spinning symbols sprites
+let tickerFunction;
+const loader = PIXI.Loader.shared;
 
 // Returns a promise that resolves when the sprites are loaded
 function LoadSprites() {
   let blurAmount = 2;
-  const loader = PIXI.Loader.shared;
   let spriteImages = [];
 
   // Remove old resources
@@ -471,17 +384,8 @@ function LoadSprites() {
   });
 }
 
-
-
-let spinningSprites = [];
-let tickerFunction;
-
-const SPAWN_OFFSET = 150; // Offset for spawnning the Spinning sprites
-const REMOVE_OFFSET = -250;
-
 function LoadSpinningSprites() {
   let blurAmount = 1; //additional blur
-  const loader = PIXI.Loader.shared;
   let spriteImages = [];
 
   // Remove old resources
@@ -612,5 +516,6 @@ function HideSprites() {
     }
   }
 
-RefreshMatrix(); // Call on start
-LoadSprites(); // Call on start
+ CreateReelsMask(); // Call on start
+ RefreshMatrix(); // Call on start
+
