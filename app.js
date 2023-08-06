@@ -1,11 +1,15 @@
-// General game settings
-const WIDTH = 1920; //window.innerWidth for responsiveness
-const HEIGHT = 1080; //window.innerHeight for responsiveness
-const REELS = 4;
-const SYMBOLS = 3;
-const SYMBOL_SIZE = 100;
-const SYMBOLS_COUNT = 10; // SHOULD MATCH NUMBER OF SYMBOL TEXTURES (10)
-const SPACING = 100; // Spacing between symbols
+import {
+  WIDTH,
+  HEIGHT,
+  REELS,
+  SYMBOLS,
+  SYMBOL_SIZE,
+  SYMBOLS_COUNT,
+  SPACING,
+} from "./constants.js";
+import Background from "./background.js";
+import Button from './button.js';
+import Reel from "./reel.js";
 
 // Initialize the Pixi Application
 let app = new PIXI.Application({
@@ -16,37 +20,10 @@ let app = new PIXI.Application({
   antialias: true,
   transparent: false,
 });
+export default app;
 
-// Background image
-const backgroundImageURL = "./Images/background.jpg";
-const backgroundTexture = PIXI.Texture.from(backgroundImageURL);
-
-// Create a sprite from the background texture
-const backgroundSprite = new PIXI.Sprite(backgroundTexture);
-backgroundSprite.width = WIDTH;
-backgroundSprite.height = HEIGHT;
-
-// Add the background sprite to the stage
-app.stage.addChild(backgroundSprite);
-
-// Reorder the children of the stage to ensure the background is at the bottom
-app.stage.setChildIndex(backgroundSprite, 0);
-
-document.body.appendChild(app.view);
-
-// Adjust the canvas position to screen center
-app.view.style.position = "absolute";
-app.view.style.top = "50%";
-app.view.style.left = "50%";
-app.view.style.transform = "translate(-50%, -50%)";
-
-// Create a container for the slot reels
-let reelsContainer = new PIXI.Container();
-app.stage.addChild(reelsContainer);
-
-// Calculate starting positions
-let startX = (WIDTH - REELS * SYMBOL_SIZE - (REELS - 1) * SPACING) / 2;
-let startY = (HEIGHT - SYMBOLS * SYMBOL_SIZE - (SYMBOLS - 1) * SPACING) / 2;
+const background = new Background("./Images/background.jpg");
+background.loadBackground();
 
 //Symbol resources
 const jsonURL = "Images/symStatic.json";
@@ -60,33 +37,25 @@ const loseSound = new Audio("./Sound/loose.mp3");
 //Logic variables for the Menu/Dialogue
 let refreshButtonClicked = false;
 let okDialogueButtonClicked = true;
-let spinClicked = false;
+export let spinClicked = false;
 let isSpinning = false;
 
+// Calculate starting positions for reels
+let startX = (WIDTH - REELS * SYMBOL_SIZE - (REELS - 1) * SPACING) / 2;
+let startY = (HEIGHT - SYMBOLS * SYMBOL_SIZE - (SYMBOLS - 1) * SPACING) / 2;
+
+// Create a container for the slot reels
+export let reelsContainer = new PIXI.Container();
+app.stage.addChild(reelsContainer);
+
 // Define the slot reels
-let reels = [];
-let matrix = []; // A 2D array that stores the numbers of the reels
+export let slotReels = [];
+export let matrix = []; // A 2D array that stores the numbers of the reels
 for (let i = 0; i < REELS; i++) {
-  let reel = [];
-  let column = []; // A column in the matrix
-  for (let j = 0; j < SYMBOLS; j++) {
-    let number = Math.floor(Math.random() * SYMBOLS_COUNT) + 1; // Random number between 1 and SYMBOLS_COUNT
-    column.push(number);
+  let reel = new Reel(app, startX + i * (SYMBOL_SIZE + SPACING), startY, SYMBOLS, SPACING);
+  let column = reel.symbols.map(symbol => Number(symbol.text));
 
-    // Create a text object for the symbol
-    let symbol = new PIXI.Text(number, {
-      fontFamily: "Arial",
-      fontSize: 0.1, //Make matrix numbers not visible
-      fill: 0xff1010,
-      align: "center",
-    });
-
-    symbol.x = startX + i * (SYMBOL_SIZE + SPACING);
-    symbol.y = startY + j * (SYMBOL_SIZE + SPACING);
-    reel.push(symbol);
-    reelsContainer.addChild(symbol);
-  }
-  reels.push(reel);
+  slotReels.push(reel);
   matrix.push(column);
 }
 
@@ -106,220 +75,108 @@ let availableVerticalSpace =
 let verticalShift = Math.min(
   availableVerticalSpace,
   -0.9 * availableVerticalSpace
-); // Shift the buttons up offset
+);
 let buttonWidths = [
   PIXI.TextMetrics.measureText("REFRESH", buttonStyle).width,
   PIXI.TextMetrics.measureText("SPIN", buttonStyle).width,
   PIXI.TextMetrics.measureText("STOP", buttonStyle).width,
 ];
 
-let totalButtonWidth = buttonWidths.reduce((a, b) => a + b, 0); // the total width of the button texts
-let totalSpacing = (buttonWidths.length - 1) * buttonSpacing; // the total width of the spaces between the buttons
+let totalButtonWidth = buttonWidths.reduce((a, b) => a + b, 0);
+let totalSpacing = (buttonWidths.length - 1) * buttonSpacing;
+let buttonX = (WIDTH - totalButtonWidth - totalSpacing) / 2;
 
-let buttonX = (WIDTH - totalButtonWidth - totalSpacing) / 2; // centered with equal space on both sides
 
-// Refresh button
-let refreshButton = new PIXI.Container();
-refreshButton.interactive = true;
-refreshButton.buttonMode = true;
-
-// Create a background rectangle for the button
-let refreshButtonBackground = new PIXI.Graphics();
-refreshButtonBackground.lineStyle(2.5, 0xffffff); // Set the border color and thickness
-refreshButtonBackground.beginFill(0x000000); // Set the background color
-refreshButtonBackground.drawRoundedRect(
-  0,
-  0,
-  buttonWidths[0] + 40,
-  buttonStyle.fontSize + 50,
-  15
-); // Adjust the size and corner radius based on the button text
-refreshButtonBackground.endFill();
-
-refreshButton.addChild(refreshButtonBackground);
-
-// Create the button text
-let refreshButtonText = new PIXI.Text("REFRESH", buttonStyle);
-refreshButtonText.anchor.set(0.5);
-refreshButtonText.x = refreshButtonBackground.width / 2;
-refreshButtonText.y = refreshButtonBackground.height / 2; // Adjust the vertical position to center the text
-
-refreshButton.addChild(refreshButtonText);
-
-refreshButton.x = buttonX - leftShift + 30;
-refreshButton.y = HEIGHT - 120 + verticalShift; // Adjust the y position to move the button up
-
-// Refresh button hover effect
-refreshButton.on("pointerover", function () {
-  refreshButtonBackground.alpha = 0.7; // Adjust the hover alpha value
-});
-
-refreshButton.on("pointerout", function () {
-  refreshButtonBackground.alpha = 1.0; // Restore the original alpha value
-});
-
-refreshButton.on("pointerdown", function () {
-  if (!spinClicked && !refreshButtonClicked && okDialogueButtonClicked) {
-    clickSound.play();
-    RefreshMatrix();
-  }
-});
-
-app.stage.addChild(refreshButton);
-
-// Spin button
-let spinButton = new PIXI.Container();
-spinButton.interactive = true;
-spinButton.buttonMode = true;
-
-// Create a background rectangle for the button
-let spinButtonBackground = new PIXI.Graphics();
-spinButtonBackground.lineStyle(2.5, 0xffffff); // Set the border color and thickness
-spinButtonBackground.beginFill(0x000000); // Set the background color
-spinButtonBackground.drawRoundedRect(
-  0,
-  0,
+// Instantiate the buttons
+let refreshButton = new Button(
+  app,
+  "REFRESH",
+  buttonStyle,
+  buttonX - leftShift + 30,
+  HEIGHT - 120 + verticalShift,
   buttonWidths[0],
-  buttonStyle.fontSize + 50,
-  15
-); // Adjust the size and corner radius based on the button text
-spinButtonBackground.endFill();
-
-spinButton.addChild(spinButtonBackground);
-
-// Create the button text
-let spinButtonText = new PIXI.Text("SPIN", buttonStyle);
-spinButtonText.anchor.set(0.5);
-spinButtonText.x = spinButtonBackground.width / 2;
-spinButtonText.y = spinButtonBackground.height / 2; // Adjust the vertical position to center the text
-
-spinButton.addChild(spinButtonText);
-
-spinButton.x =
-  buttonX +
-  30 +
-  (buttonWidths[0] - buttonWidths[1] + buttonWidths[2]) / 2 +
-  2 * buttonSpacing -
-  leftShift -
-  45; // Center the button horizontally and add the spacing
-spinButton.y = HEIGHT - 120 + verticalShift; // Adjust the y position to move the button up
-
-// Spin button hover effect
-spinButton.on("pointerover", function () {
-  spinButtonBackground.alpha = 0.7; // Adjust the hover alpha value
-});
-
-spinButton.on("pointerout", function () {
-  spinButtonBackground.alpha = 1.0; // Restore the original alpha value
-});
-
-// Spin button click event
-spinButton.on("pointerdown", function () {
-  if (!isSpinning && okDialogueButtonClicked) {
-    clickSound.play();
-    isSpinning = true;
-    LoadSpinningSprites();
-    HideSprites();
-    spinClicked = true;
+  function () {
+    if (!spinClicked && !refreshButtonClicked && okDialogueButtonClicked) {
+      clickSound.play();
+      RefreshMatrix();
+    }
   }
-});
+);
 
-app.stage.addChild(spinButton);
-
-// Stop button
-let stopButton = new PIXI.Container();
-stopButton.interactive = true;
-stopButton.buttonMode = true;
-
-// Create a background rectangle for the button
-let stopButtonBackground = new PIXI.Graphics();
-stopButtonBackground.lineStyle(2.5, 0xffffff); // Set the border color and thickness
-stopButtonBackground.beginFill(0x000000); // Set the background color
-stopButtonBackground.drawRoundedRect(
-  0,
-  0,
-  buttonWidths[2] + 40,
-  buttonStyle.fontSize + 50,
-  15
-); // Adjust the size and corner radius based on the button text
-stopButtonBackground.endFill();
-
-stopButton.addChild(stopButtonBackground);
-
-// Create the button text
-let stopButtonText = new PIXI.Text("STOP", buttonStyle);
-stopButtonText.anchor.set(0.5);
-stopButtonText.x = stopButtonBackground.width / 2;
-stopButtonText.y = stopButtonBackground.height / 2; // Adjust the vertical position to center the text
-
-stopButton.addChild(stopButtonText);
-
-stopButton.x =
+let spinButton = new Button(
+  app,
+  "SPIN",
+  buttonStyle,
   buttonX +
-  30 + //slight offset 
-  buttonWidths[0] +
-  buttonWidths[1] +
-  2 * buttonSpacing -
-  leftShift; // Add the widths of the previous buttons and the spaces
-stopButton.y = HEIGHT - 120 + verticalShift; // Adjust the y position to move the button up
+    buttonWidths[0] +
+    buttonSpacing, // Spin button starts where the refresh button ends + the button spacing
+  HEIGHT - 120 + verticalShift,
+  buttonWidths[1],
+  function () {
+    if (!isSpinning && okDialogueButtonClicked) {
+      clickSound.play();
+      isSpinning = true;
+      LoadSpinningSprites();
+      HideSprites();
+      spinClicked = true;
+    }
+  }
+);
 
-// Stop button hover effect
-stopButton.on("pointerover", function () {
-  stopButtonBackground.alpha = 0.7; // Adjust the hover alpha value
-});
+let stopButton = new Button(
+  app,
+  "STOP",
+  buttonStyle,
+  buttonX +
+    30 +
+    buttonWidths[0] +
+    buttonWidths[1] +
+    2 * buttonSpacing -
+    leftShift,
+  HEIGHT - 120 + verticalShift,
+  buttonWidths[2],
+  async function () { //STOP Button function
+    if (spinClicked && okDialogueButtonClicked) {
+      clickSound.play();
+      HideSpinningSprites();
+      ClearMatrix();
+      refreshButtonClicked = false;
 
-stopButton.on("pointerout", function () {
-  stopButtonBackground.alpha = 1.0; // Restore the original alpha value
-});
+      for (let i = 0; i < REELS; i++) {
+        for (let j = 0; j < SYMBOLS; j++) {
+          let number = Math.floor(Math.random() * SYMBOLS_COUNT) + 1;
+          matrix[i][j] = number;
+        }
+      }
 
-// Stop button click event
-stopButton.on("pointerdown", async function () {
-  if (spinClicked && okDialogueButtonClicked) {
-    clickSound.play();
-    HideSpinningSprites();
-    clearMatrix();
-    refreshButtonClicked = false;
+      okDialogueButtonClicked = false;
 
-    for (let i = 0; i < REELS; i++) {
-      for (let j = 0; j < SYMBOLS; j++) {
-        let number = Math.floor(Math.random() * SYMBOLS_COUNT) + 1; //Make a new random matrix
-        matrix[i][j] = number;
-        reels[i][j].text = number;
+      await LoadSprites();
+      ShowSprites();
+
+      reelsContainer.visible = true;
+      spinClicked = false;
+      isSpinning = false;
+
+      if (CheckWin(matrix, slotReels)) {
+        console.log("You win!");
+        btnText.text = "You win!";
+        winSound.play();
+        ShowDialogue(2500);
+      } else {
+        console.log("You lose!");
+        btnText.text = "You lose!";
+        loseSound.play();
+        ShowDialogue(1000);
       }
     }
-
-    okDialogueButtonClicked = false;
-
-    await LoadSprites();
-    ShowSprites();
-
-    reelsContainer.visible = true;
-    spinClicked = false;
-    isSpinning = false;
-
-    if (CheckWin(matrix, reels)) {
-      console.log("You win!");
-      btnText.text = "You win!";
-      winSound.play();
-      ShowDialogue(2500);
-    } else {
-      console.log("You lose!");
-      btnText.text = "You lose!";
-      loseSound.play();
-      ShowDialogue(1000);
-    }
   }
-});
+);
 
-app.stage.addChild(stopButton);
 
-function RefreshSymbols(matrix, reels) {
+function RefreshSymbols(matrix, slotReels) {
   for (let i = 0; i < REELS; i++) {
     for (let j = 0; j < SYMBOLS; j++) {
-      // Update the symbol text
-      reels[i][j].text = matrix[i][j];
-      // Reset the color
-      //reels[i][j].style.fill = 0xff1010;
     }
   }
 }
@@ -334,7 +191,7 @@ async function RefreshMatrix() {
         [7, 3, 8],
         [5, 8, 6],
       ];
-      RefreshSymbols(matrix, reels);
+      RefreshSymbols(matrix, slotReels);
       await HideSprites();
       LoadSprites();
       ShowSprites();
@@ -344,16 +201,18 @@ async function RefreshMatrix() {
   }
 }
 
-function clearMatrix() {
+function ClearMatrix() {
   // Clear the old reels
   HideSprites();
   for (let i = 0; i < REELS; i++) {
     for (let j = 0; j < SYMBOLS; j++) {
-      reelsContainer.removeChild(reels[i][j]);
-      reels[i][j].destroy();
+      if (slotReels[i] && slotReels[i][j]) { // Check if slotReels[i][j] exists
+        reelsContainer.removeChild(slotReels[i][j]);
+        slotReels[i][j].destroy();
+      }
     }
   }
-  reels = [];
+  slotReels = [];
   matrix = [];
 
   // Create new reels and matrix
@@ -376,15 +235,15 @@ function clearMatrix() {
       // Update the matrix
       column.push("");
     }
-    reels.push(reel);
+    slotReels.push(reel);
     matrix.push(column);
   }
 }
 
 // Check for win
-const CheckWin = (matrix, reels) => {
+const CheckWin = (matrix, slotReels) => {
   let win = false;
-  ScaleWinningSprites(matrix, reels, 0.675); // Scale the winning sprites up
+  ScaleWinningSprites(matrix, slotReels, 0.675); // Scale the winning sprites up
 
   // Check all horizontal lines
   for (let i = 0; i < SYMBOLS; i++) {
@@ -394,10 +253,6 @@ const CheckWin = (matrix, reels) => {
         matrix[j + 1][i] === matrix[j + 2][i]
       ) {
         win = true;
-        //   reels[j][i].style.fill =
-        //     reels[j + 1][i].style.fill =
-        //     reels[j + 2][i].style.fill =
-        //       0x00ff00; // highlight winning numbers
       }
     }
   }
@@ -409,10 +264,6 @@ const CheckWin = (matrix, reels) => {
       matrix[i + 1][1] === matrix[i + 2][2]
     ) {
       win = true;
-      // reels[i][0].style.fill =
-      //   reels[i + 1][1].style.fill =
-      //   reels[i + 2][2].style.fill =
-      //     0x00ff00; // highlight winning numbers
     }
   }
 
@@ -423,10 +274,6 @@ const CheckWin = (matrix, reels) => {
       matrix[i + 1][1] === matrix[i + 2][0]
     ) {
       win = true;
-      // reels[i][2].style.fill =
-      //   reels[i + 1][1].style.fill =
-      //   reels[i + 2][0].style.fill =
-      //     0x00ff00; // highlight winning numbers
     }
   }
 
@@ -438,234 +285,12 @@ const CheckWin = (matrix, reels) => {
         matrix[i][j + 1] === matrix[i][j + 2]
       ) {
         win = true;
-        //   reels[i][j].style.fill =
-        //     reels[i][j + 1].style.fill =
-        //     reels[i][j + 2].style.fill =
-        //       0x00ff00; // highlight winning numbers
       }
     }
   }
 
   return win;
 };
-
-let sprites = [];
-
-// Returns a promise that resolves when the sprites are loaded
-function LoadSprites() {
-  let blurAmount = 2;
-  const loader = PIXI.Loader.shared;
-  let spriteImages = [];
-
-  // Remove old resources
-  loader.reset();
-
-  // Load the JSON file and texture
-  return new Promise((resolve, reject) => {
-    loader
-      .add("json", jsonURL)
-      .add("texture", textureURL)
-
-      .load((_, resources) => {
-        const json = resources.json.data;
-        const texture = resources.texture.texture;
-
-        // Create a spritesheet from the texture and JSON data
-        const spritesheet = new PIXI.Spritesheet(texture.baseTexture, json);
-
-        // Parse the spritesheet
-        spritesheet.parse(() => {
-          // Iterate over the frames and create sprites
-          for (const frameKey in json.frames) {
-            if (frameKey.includes("static")) {
-              //Only sprites with static in json name
-              const sprite = new PIXI.Sprite(spritesheet.textures[frameKey]);
-              const blurFilter = new PIXI.filters.BlurFilter();
-              blurFilter.blur = blurAmount;
-              sprite.filters = [blurFilter];
-              spriteImages.push(sprite);
-            }
-          }
-          for (let i = 0; i < REELS; i++) {
-            let reel = [];
-            let spriteRow = []; // 2D array to store the sprites in each reel
-            for (let j = 0; j < SYMBOLS; j++) {
-              const spriteIndex = matrix[i][j] - 1;
-              if (spriteIndex < 0 || spriteIndex >= spriteImages.length) {
-                throw new Error(
-                  `Invalid sprite index ${spriteIndex} in matrix.`
-                );
-              }
-              const sprite = new PIXI.Sprite(spriteImages[spriteIndex].texture);
-              sprite.x = startX + i * (SYMBOL_SIZE + SPACING);
-              sprite.y = startY + j * (SYMBOL_SIZE + SPACING);
-
-              sprite.scale.x = 0.5;
-              sprite.scale.y = 0.5;
-
-              const newBlurFilter = new PIXI.filters.BlurFilter();
-              newBlurFilter.blur = blurAmount;
-              sprite.filters = [newBlurFilter];
-
-              // Animate the blur filter
-              gsap.to(newBlurFilter, {
-                blur: 0,
-                duration: 0.15,
-                delay: 0,
-              });
-
-              reel.push(sprite);
-              spriteRow.push(sprite); // Store the sprite in the spriteRow array
-              reelsContainer.addChild(sprite);
-            }
-            reels.push(reel);
-            sprites.push(spriteRow); // Store the spriteRow array in the sprites array
-          }
-          resolve(); // Resolve the promise as the sprites are loaded and parsed
-        });
-      });
-  });
-}
-
-let spinningSprites = [];
-
-let tickerFunction;
-
-const SPAWN_OFFSET = 150; // Offset for spawnning the Spinning sprites
-const REMOVE_OFFSET = -250;
-
-function LoadSpinningSprites() {
-  let blurAmount = 1;
-  const loader = PIXI.Loader.shared;
-  let spriteImages = [];
-
-  // Remove old resources
-  loader.reset();
-
-  // Helper function to get a random sprite texture for spinning
-  function getRandomSprite() {
-    const spriteIndex = Math.floor(Math.random() * spriteImages.length);
-    return spriteImages[spriteIndex].texture;
-  }
-
-  // Load the JSON file and texture
-  return new Promise((resolve, reject) => {
-    loader
-      .add("json", jsonURL)
-      .add("texture", textureURL)
-      .load((_, resources) => {
-        const json = resources.json.data;
-        const texture = resources.texture.texture;
-
-        // Create a spritesheet from the texture and JSON data
-        const spritesheet = new PIXI.Spritesheet(texture.baseTexture, json);
-
-        // Parse the spritesheet
-        spritesheet.parse(() => {
-          // Iterate over the frames and create sprites
-          for (const frameKey in json.frames) {
-            if (frameKey.includes("spin")) {
-              // Check for sprites with spin in the name
-              const sprite = new PIXI.Sprite(spritesheet.textures[frameKey]);
-              const blurFilter = new PIXI.filters.BlurFilter();
-              blurFilter.blur = blurAmount;
-              sprite.filters = [blurFilter];
-              spriteImages.push(sprite);
-            }
-          }
-          for (let i = 0; i < REELS; i++) {
-            let reel = [];
-            for (let j = 0; j < SYMBOLS; j++) {
-              const spriteIndex = matrix[i][j] - 1;
-              if (spriteIndex < 0 || spriteIndex >= spriteImages.length) {
-                throw new Error(
-                  `Invalid sprite index ${spriteIndex} in matrix.`
-                );
-              }
-              const sprite = new PIXI.Sprite(spriteImages[spriteIndex].texture);
-              sprite.x = startX + i * (SYMBOL_SIZE + SPACING);
-              sprite.y = startY + j * (SYMBOL_SIZE + SPACING);
-
-              sprite.scale.x = 0.5;
-              sprite.scale.y = 0.5;
-
-              // Add a speed attribute (How fast sprites spin)
-              sprite.ySpeed = 2.5;
-
-              reel.push(sprite);
-              reelsContainer.addChild(sprite);
-              spinningSprites.push(sprite); // Store the sprite in the spinningSprites array
-            }
-            reels.push(reel);
-          }
-
-          // Start the ticker
-          if (tickerFunction) {
-            app.ticker.remove(tickerFunction); // remove existing ticker
-          }
-          tickerFunction = () => {
-            // Update each sprite's position
-            for (const sprite of spinningSprites) {
-              sprite.y += sprite.ySpeed * app.ticker.elapsedMS;
-
-              // If sprite is out of view, remove it and add a new one at the top
-              if (sprite.y >= HEIGHT + REMOVE_OFFSET) {
-                reelsContainer.removeChild(sprite);
-                spinningSprites = spinningSprites.filter((s) => s !== sprite); // Remove sprite from the array
-
-                // Create a new sprite at the top of the reels container
-                const newSprite = new PIXI.Sprite(getRandomSprite());
-                newSprite.x = sprite.x;
-                newSprite.y = startY - SPAWN_OFFSET;
-                newSprite.ySpeed = sprite.ySpeed;
-                newSprite.scale.x = sprite.scale.x;
-                newSprite.scale.y = sprite.scale.y;
-                const newBlurFilter = new PIXI.filters.BlurFilter();
-                newBlurFilter.blur = blurAmount;
-                newSprite.filters = [newBlurFilter];
-                spinningSprites.push(newSprite);
-                reelsContainer.addChild(newSprite);
-              }
-            }
-          };
-          app.ticker.add(tickerFunction);
-          resolve(); // Resolve the promise as the sprites are loaded and parsed
-        });
-      });
-  });
-}
-
-function HideSprites() {
-  return new Promise((resolve) => {
-    for (let spriteRow of sprites) {
-      for (let sprite of spriteRow) {
-        sprite.visible = false;
-        reelsContainer.removeChild(sprite); // Remove the sprite from the container
-        sprite.destroy();
-      }
-    }
-    sprites = [];
-    resolve();
-  });
-}
-
-function HideSpinningSprites() {
-  return new Promise((resolve) => {
-    for (let sprite of spinningSprites) {
-      sprite.visible = false;
-      reelsContainer.removeChild(sprite); // Remove the sprite from the container
-      sprite.destroy();
-    }
-    spinningSprites = [];
-    resolve();
-  });
-}
-
-function ShowSprites() {
-  for (let sprite of sprites) {
-    sprite.visible = true;
-  }
-}
 
 // Define offsets
 let topOffset = 0; // offset for the top of the mask
@@ -765,6 +390,229 @@ function ScaleWinningSprites(matrix, reels, scale) {
     checkWinningLine(line);
   }
 }
+
+
+let sprites = []; //symbols sprites array
+
+// Returns a promise that resolves when the sprites are loaded
+function LoadSprites() {
+  let blurAmount = 2;
+  const loader = PIXI.Loader.shared;
+  let spriteImages = [];
+
+  // Remove old resources
+  loader.reset();
+
+  // Load the JSON file and texture
+  return new Promise((resolve, reject) => {
+    loader
+      .add("json", jsonURL)
+      .add("texture", textureURL)
+
+      .load((_, resources) => {
+        const json = resources.json.data;
+        const texture = resources.texture.texture;
+
+        // Create a spritesheet from the texture and JSON data
+        const spritesheet = new PIXI.Spritesheet(texture.baseTexture, json);
+
+        // Parse the spritesheet
+        spritesheet.parse(() => {
+          // Iterate over the frames and create sprites
+          for (const frameKey in json.frames) {
+            if (frameKey.includes("static")) {
+              //Only sprites with static in json name
+              const sprite = new PIXI.Sprite(spritesheet.textures[frameKey]);
+              const blurFilter = new PIXI.filters.BlurFilter();
+              blurFilter.blur = blurAmount;
+              sprite.filters = [blurFilter];
+              spriteImages.push(sprite);
+            }
+          }
+          for (let i = 0; i < REELS; i++) {
+            let reel = [];
+            let spriteRow = []; // 2D array to store the sprites in each reel
+            for (let j = 0; j < SYMBOLS; j++) {
+              const spriteIndex = matrix[i][j] - 1;
+              if (spriteIndex < 0 || spriteIndex >= spriteImages.length) {
+                throw new Error(
+                  `Invalid sprite index ${spriteIndex} in matrix.`
+                );
+              }
+              const sprite = new PIXI.Sprite(spriteImages[spriteIndex].texture);
+              sprite.x = startX + i * (SYMBOL_SIZE + SPACING);
+              sprite.y = startY + j * (SYMBOL_SIZE + SPACING);
+
+              sprite.scale.x = 0.5;
+              sprite.scale.y = 0.5;
+
+              const newBlurFilter = new PIXI.filters.BlurFilter();
+              newBlurFilter.blur = blurAmount;
+              sprite.filters = [newBlurFilter];
+
+              // Animate the blur filter
+              gsap.to(newBlurFilter, {
+                blur: 0,
+                duration: 0.15,
+                delay: 0,
+              });
+
+              reel.push(sprite);
+              spriteRow.push(sprite); // Store the sprite in the spriteRow array
+              reelsContainer.addChild(sprite);
+            }
+            slotReels.push(reel);
+            sprites.push(spriteRow); // Store the spriteRow array in the sprites array
+          }
+          resolve(); // Resolve the promise as the sprites are loaded and parsed
+        });
+      });
+  });
+}
+
+
+
+let spinningSprites = [];
+let tickerFunction;
+
+const SPAWN_OFFSET = 150; // Offset for spawnning the Spinning sprites
+const REMOVE_OFFSET = -250;
+
+function LoadSpinningSprites() {
+  let blurAmount = 1;
+  const loader = PIXI.Loader.shared;
+  let spriteImages = [];
+
+  // Remove old resources
+  loader.reset();
+
+  // Helper function to get a random sprite texture for spinning
+  function getRandomSprite() {
+    const spriteIndex = Math.floor(Math.random() * spriteImages.length);
+    return spriteImages[spriteIndex].texture;
+  }
+
+  // Load the JSON file and texture
+  return new Promise((resolve, reject) => {
+    loader
+      .add("json", jsonURL)
+      .add("texture", textureURL)
+      .load((_, resources) => {
+        const json = resources.json.data;
+        const texture = resources.texture.texture;
+
+        // Create a spritesheet from the texture and JSON data
+        const spritesheet = new PIXI.Spritesheet(texture.baseTexture, json);
+
+        // Parse the spritesheet
+        spritesheet.parse(() => {
+          // Iterate over the frames and create sprites
+          for (const frameKey in json.frames) {
+            if (frameKey.includes("spin")) {
+              // Check for sprites with spin in the name
+              const sprite = new PIXI.Sprite(spritesheet.textures[frameKey]);
+              const blurFilter = new PIXI.filters.BlurFilter();
+              blurFilter.blur = blurAmount;
+              sprite.filters = [blurFilter];
+              spriteImages.push(sprite);
+            }
+          }
+          for (let i = 0; i < REELS; i++) {
+            let reel = [];
+            for (let j = 0; j < SYMBOLS; j++) {
+              const spriteIndex = matrix[i][j] - 1;
+              if (spriteIndex < 0 || spriteIndex >= spriteImages.length) {
+                throw new Error(
+                  `Invalid sprite index ${spriteIndex} in matrix.`
+                );
+              }
+              const sprite = new PIXI.Sprite(spriteImages[spriteIndex].texture);
+              sprite.x = startX + i * (SYMBOL_SIZE + SPACING);
+              sprite.y = startY + j * (SYMBOL_SIZE + SPACING);
+
+              sprite.scale.x = 0.5;
+              sprite.scale.y = 0.5;
+
+              // Add a speed attribute (How fast sprites spin)
+              sprite.ySpeed = 2.5;
+
+              reel.push(sprite);
+              reelsContainer.addChild(sprite);
+              spinningSprites.push(sprite); // Store the sprite in the spinningSprites array
+            }
+            slotReels.push(reel);
+          }
+
+          // Start the ticker
+          if (tickerFunction) {
+            app.ticker.remove(tickerFunction); // remove existing ticker
+          }
+          tickerFunction = () => {
+            // Update each sprite's position
+            for (const sprite of spinningSprites) {
+              sprite.y += sprite.ySpeed * app.ticker.elapsedMS;
+
+              // If sprite is out of view, remove it and add a new one at the top
+              if (sprite.y >= HEIGHT + REMOVE_OFFSET) {
+                reelsContainer.removeChild(sprite);
+                spinningSprites = spinningSprites.filter((s) => s !== sprite); // Remove sprite from the array
+
+                // Create a new sprite at the top of the reels container
+                const newSprite = new PIXI.Sprite(getRandomSprite());
+                newSprite.x = sprite.x;
+                newSprite.y = startY - SPAWN_OFFSET;
+                newSprite.ySpeed = sprite.ySpeed;
+                newSprite.scale.x = sprite.scale.x;
+                newSprite.scale.y = sprite.scale.y;
+                const newBlurFilter = new PIXI.filters.BlurFilter();
+                newBlurFilter.blur = blurAmount;
+                newSprite.filters = [newBlurFilter];
+                spinningSprites.push(newSprite);
+                reelsContainer.addChild(newSprite);
+              }
+            }
+          };
+          app.ticker.add(tickerFunction);
+          resolve(); // Resolve the promise as the sprites are loaded and parsed
+        });
+      });
+  });
+}
+
+function HideSpinningSprites() {
+  return new Promise((resolve) => {
+    for (let sprite of spinningSprites) {
+      sprite.visible = false;
+      reelsContainer.removeChild(sprite); // Remove the sprite from the container
+      sprite.destroy();
+    }
+    spinningSprites = [];
+    resolve();
+  });
+}
+
+function HideSprites() {
+    return new Promise((resolve) => {
+      for (let spriteRow of sprites) {
+        for (let sprite of spriteRow) {
+          sprite.visible = false;
+          reelsContainer.removeChild(sprite); // Remove the sprite from the container
+          sprite.destroy();
+        }
+      }
+      sprites = [];
+      resolve();
+    });
+  }
+
+  function ShowSprites() {
+    for (let sprite of sprites) {
+      sprite.visible = true;
+    }
+  }
+
+
+  
 
 function HideDialogue(spineAnimation) {
   if (spineAnimation) {
