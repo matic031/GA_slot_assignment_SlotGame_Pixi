@@ -17,11 +17,11 @@ import {
   REMOVE_OFFSET,
   SPAWN_OFFSET
 } from "./constants.js";
-import Background from "./Components/background.js";
-import Button from "./Components/button.js";
-import Reel from "./Components/reel.js";
-import { ShowDialogue, btnText } from "./Components/dialogue.js";
-import CreateReelsMask from "./Components/reel-mask.js";
+import Background from "./components/background.js";
+import Button from "./components/button.js";
+import Reel from "./components/reel.js";
+import { ShowDialogue, btnText } from "./components/dialogue.js";
+import CreateReelsMask from "./components/reel-mask.js";
 import {
   buttonStyle,
   buttonSpacing,
@@ -29,7 +29,7 @@ import {
   verticalShift,
   buttonWidths,
   buttonX,
-} from "./Components/button-style.js";
+} from "./components/button-style.js";
 
 // Initialize the Pixi Application
 let app = new PIXI.Application({
