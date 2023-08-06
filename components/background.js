@@ -1,8 +1,8 @@
 import {
   WIDTH,
   HEIGHT,
-} from "./constants.js";
-import app from "./app.js";
+} from "../constants.js";
+import app from "../app.js";
 
 export default class Background {
   constructor(backgroundImageURL) {

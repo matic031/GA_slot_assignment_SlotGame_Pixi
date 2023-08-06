@@ -2,7 +2,7 @@ import {
     SYMBOLS_COUNT,
     SYMBOL_SIZE,
     SPACING,
-  } from "./constants.js";
+  } from "../constants.js";
   
   class Reel {
     constructor(app, startX, startY, symbolCount, spacing) {

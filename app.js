@@ -7,9 +7,10 @@ import {
   SYMBOLS_COUNT,
   SPACING,
 } from "./constants.js";
-import Background from "./background.js";
-import Button from './button.js';
-import Reel from "./reel.js";
+import Background from "./components/background.js";
+import Button from './components/button.js';
+import Reel from "./components/reel.js";
+import { ShowDialogue, btnText } from "./components/dialogue.js"
 
 // Initialize the Pixi Application
 let app = new PIXI.Application({
@@ -30,14 +31,15 @@ const jsonURL = "Images/symStatic.json";
 const textureURL = "Images/symStatic.webp";
 
 //Audio
-const clickSound = new Audio("./Sound/click.mp3");
-const winSound = new Audio("./Sound/win.mp3");
-const loseSound = new Audio("./Sound/loose.mp3");
+export const clickSound = new Audio("./Sound/click.mp3");
+export const winSound = new Audio("./Sound/win.mp3");
+export const loseSound = new Audio("./Sound/loose.mp3");
 
 //Logic variables for the Menu/Dialogue
 let refreshButtonClicked = false;
-let okDialogueButtonClicked = true;
 export let spinClicked = false;
+export let okDialogueButtonClicked = true;
+export function modifyOkDialogueButtonClicked(value) {okDialogueButtonClicked = value; }
 let isSpinning = false;
 
 // Calculate starting positions for reels
@@ -202,7 +204,6 @@ async function RefreshMatrix() {
 }
 
 function ClearMatrix() {
-  // Clear the old reels
   HideSprites();
   for (let i = 0; i < REELS; i++) {
     for (let j = 0; j < SYMBOLS; j++) {
@@ -292,7 +293,7 @@ const CheckWin = (matrix, slotReels) => {
   return win;
 };
 
-// Define offsets
+// Define offsets for mask
 let topOffset = 0; // offset for the top of the mask
 let bottomOffset = -50; // offset for the bottom of the mask
 
@@ -479,7 +480,7 @@ const SPAWN_OFFSET = 150; // Offset for spawnning the Spinning sprites
 const REMOVE_OFFSET = -250;
 
 function LoadSpinningSprites() {
-  let blurAmount = 1;
+  let blurAmount = 1; //additional blur
   const loader = PIXI.Loader.shared;
   let spriteImages = [];
 
@@ -610,163 +611,6 @@ function HideSprites() {
       sprite.visible = true;
     }
   }
-
-
-  
-
-function HideDialogue(spineAnimation) {
-  if (spineAnimation) {
-    // Play the animation
-    spineAnimation.state.setAnimation(0, "out", false);
-
-    setTimeout(() => {
-      // Remove the Spine animation from the stage
-      app.stage.removeChild(spineAnimation);
-
-      // Clean up resources
-      spineAnimation.state.clearListeners();
-      spineAnimation.destroy();
-    }, 1000);
-  }
-}
-
-// Define the text styles
-const btnTextStyle = new PIXI.TextStyle({
-  fontFamily: "Arial",
-  fontSize: 65,
-  fontWeight: "bold",
-  fill: ["#ffffff"],
-  align: "center",
-  dropShadow: true,
-  dropShadowColor: "#000000",
-  dropShadowBlur: 10,
-  dropShadowDistance: 5,
-  dropShadowAngle: Math.PI / 6,
-});
-
-// Dialogue button Text
-let btnText = new PIXI.Text("", btnTextStyle);
-
-const txtTextStyle = new PIXI.TextStyle({
-  fontFamily: "Arial",
-  fontSize: 30,
-  fontWeight: "bold",
-  fill: ["#ffffff"],
-  align: "center",
-  dropShadow: true,
-  dropShadowColor: "#000000",
-  dropShadowBlur: 10,
-  dropShadowDistance: 5,
-  dropShadowAngle: Math.PI / 6,
-});
-
-// Dialogue OK Text
-let txtText = new PIXI.Text("OK", txtTextStyle);
-
-function ShowDialogue(delay) {
-  // Define loader
-  const loader = new PIXI.Loader();
-
-  // Load Spine data, atlas image, and atlas file
-  loader
-    .add("spineData", "./Spines/dialogue.json")
-    .add("imageName", "./Spines/dialogue.webp")
-    .add("atlasData", "./Spines/dialogue.atlas")
-    .load((loader, resources) => {
-      setTimeout(() => {
-        // Create a new Spine animation
-        let spineAnimation = new PIXI.spine.Spine(
-          resources.spineData.spineData
-        );
-
-        // Set the button state to normal
-        spineAnimation.skeleton.setSkinByName("normal");
-        spineAnimation.skeleton.setSlotsToSetupPose();
-        spineAnimation.state.setAnimation(0, "in", false); // Show in animation
-
-        // Set the position of the animation
-        spineAnimation.position.set(
-          app.renderer.width / 2,
-          app.renderer.height / 2
-        );
-
-        // Add the animation to the stage
-        app.stage.addChild(spineAnimation);
-
-        // Retrieve the button sprite
-        const buttonSlotIndex = spineAnimation.skeleton.findSlotIndex("button");
-        const buttonSprite = spineAnimation.slotContainers[buttonSlotIndex];
-
-        // Assign the interactive property to the button sprite
-        buttonSprite.interactive = true;
-
-        // Handle button hover
-        buttonSprite.on("pointerover", () => {
-          spineAnimation.skeleton.setSkinByName("hover");
-          spineAnimation.skeleton.setSlotsToSetupPose();
-        });
-
-        // Handle button press
-        buttonSprite.on("pointerdown", () => {
-          clickSound.play();
-          spineAnimation.skeleton.setSkinByName("pressed");
-          spineAnimation.skeleton.setSlotsToSetupPose();
-          okDialogueButtonClicked = true;
-          HideDialogue(spineAnimation);
-        });
-
-        // Handle button release
-        buttonSprite.on("pointerupoutside", () => {
-          spineAnimation.skeleton.setSkinByName("normal");
-          spineAnimation.skeleton.setSlotsToSetupPose();
-        });
-
-        // Handle button pointer out (hover out)
-        buttonSprite.on("pointerout", () => {
-          spineAnimation.skeleton.setSkinByName("normal");
-          spineAnimation.skeleton.setSlotsToSetupPose();
-        });
-
-        btnText.anchor.set(0.5);
-        txtText.anchor.set(0.5);
-
-        const btnPlaceholderSlot = spineAnimation.skeleton.findSlot(
-          "btn_txt_placeholder"
-        );
-        const txtPlaceholderSlot =
-          spineAnimation.skeleton.findSlot("txt_placeholder");
-
-        let btnTextContainer =
-          spineAnimation.slotContainers[btnPlaceholderSlot.data.index];
-        let txtTextContainer =
-          spineAnimation.slotContainers[txtPlaceholderSlot.data.index];
-
-        btnTextContainer.addChild(btnText);
-        txtTextContainer.addChild(txtText);
-
-        btnText.scale.set(
-          -1 / btnTextContainer.scale.x,
-          1 / btnTextContainer.scale.y
-        );
-        txtText.scale.set(
-          -1 / txtTextContainer.scale.x,
-          1 / txtTextContainer.scale.y
-        );
-
-        btnText.rotation = -btnTextContainer.rotation + Math.PI;
-        txtText.rotation = -txtTextContainer.rotation + Math.PI;
-
-        btnText.position.set(
-          -btnTextContainer.position.x,
-          -btnTextContainer.position.y + 70
-        );
-        txtText.position.set(
-          -txtTextContainer.position.x,
-          -txtTextContainer.position.y - 185
-        );
-      }, delay);
-    });
-}
 
 RefreshMatrix(); // Call on start
 LoadSprites(); // Call on start
